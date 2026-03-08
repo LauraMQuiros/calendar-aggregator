@@ -48,6 +48,18 @@ pip install -r requirements.txt
 
 Copy `.env.example` to `.env` and set `OLLAMA_MODEL=llama3.2` (or another model). Run `ollama pull llama3.2`.
 
+## How to use
+
+![Calendar Aggregator UI](./public/UI_example.png)
+
+1. **Add websites** – Click **+ Add Website** in the left sidebar and enter a URL (e.g. an events page). The app will test connectivity before adding it.
+
+2. **Extract events** – After adding a website, click the refresh icon next to it to scrape and extract events using the LLM. Events are stored and shown on the calendar.
+
+3. **View the calendar** – The main panel shows a monthly calendar. Events appear as blue bars with time slots. Use **Today** and the arrow buttons to move between months.
+
+4. **Event details** – Click an event on the calendar to open a modal with full details (time, location, description, source link).
+
 ---
 
 # Lovable project info
