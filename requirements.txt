@@ -1,0 +1,38 @@
+# Calendar Aggregator Dependencies
+
+# Web framework
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+
+# Database
+sqlalchemy>=2.0.0
+
+# Scraping
+requests>=2.31.0
+
+# HTML processing
+trafilatura>=1.6.0
+beautifulsoup4>=4.12.0
+lxml>=5.0.0
+lxml_html_clean>=0.4.0
+
+# LLM extraction - local (Ollama) or cloud
+openai>=1.12.0   # used for Ollama and OpenAI API
+anthropic>=0.18.0   # optional, for Claude API
+# For USE_TRANSFORMERS=1 (fully local, no Ollama):
+# pip install transformers torch accelerate
+
+# Deduplication
+rapidfuzz>=3.6.0
+
+# Stopword removal for prompt shortening
+nltk>=3.8.0
+
+# Lenient JSON parsing for LLM output
+json_repair>=0.7.0
+
+# Scheduling
+apscheduler>=3.10.0
+
+# Testing
+pytest>=7.0.0

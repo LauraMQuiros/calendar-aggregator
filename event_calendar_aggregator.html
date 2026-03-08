@@ -1,0 +1,1638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Calendar Aggregator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 400px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 0 20px 20px 0;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+        }
+
+        .sidebar h2 {
+            margin-bottom: 20px;
+            color: #4c63d2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px;
+            background: rgba(76, 99, 210, 0.1);
+            border-radius: 10px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-primary {
+            background: #4c63d2;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        /* Webpage List */
+        .webpage-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .folder {
+            margin-bottom: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .folder-header {
+            background: #f8f9fa;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .folder-header:hover {
+            background: #e9ecef;
+        }
+
+        .webpage-item {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s ease;
+        }
+
+        .webpage-item:hover {
+            background: #f8f9fa;
+        }
+
+        .webpage-item:last-child {
+            border-bottom: none;
+        }
+
+        .webpage-checkbox {
+            width: 16px;
+            height: 16px;
+        }
+
+        .webpage-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .webpage-status {
+            font-size: 18px;
+        }
+
+        /* Calendar */
+        .calendar-container {
+            flex: 1;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            margin: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            position: relative;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 20px;
+            gap: 20px;
+        }
+
+        .calendar-title {
+            font-size: 24px;
+            color: #4c63d2;
+            flex: 1;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 1px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .calendar-day {
+            background: white;
+            min-height: 120px;
+            padding: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .calendar-day-header {
+            font-weight: bold;
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .calendar-day-number {
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .event-item {
+            background: #4c63d2;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-bottom: 2px;
+            cursor: pointer;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .event-item:hover {
+            background: #3a4bc8;
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .close {
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            color: #aaa;
+        }
+
+        .close:hover {
+            color: #000;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #4c63d2;
+            box-shadow: 0 0 0 2px rgba(76, 99, 210, 0.2);
+        }
+
+        /* Settings Panel */
+        .settings-panel {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .settings-group {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+        }
+
+        .settings-group h4 {
+            margin-bottom: 10px;
+            color: #4c63d2;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            z-index: 1001;
+            animation: slideIn 0.3s ease;
+        }
+
+        .notification.success {
+            background: #27ae60;
+        }
+
+        .notification.error {
+            background: #e74c3c;
+        }
+
+        .notification.warning {
+            background: #f39c12;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                border-radius: 0;
+            }
+            
+            .calendar-container {
+                margin: 0;
+                border-radius: 0;
+            }
+        }
+
+        /* Drag and Drop */
+        .dragging {
+            opacity: 0.5;
+        }
+
+        .drop-zone {
+            background: rgba(76, 99, 210, 0.1);
+            border: 2px dashed #4c63d2;
+        }
+
+        /* Week/Month View Toggle */
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            border: 2px solid #4c63d2;
+            background: white;
+            color: #4c63d2;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: #4c63d2;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>
+                📅 Event Sources
+                <button class="btn btn-secondary" id="settingsBtn" style="margin-left: auto;">⚙️</button>
+            </h2>
+
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <button class="btn btn-primary" id="addWebpageBtn">➕</button>
+                <button class="btn btn-secondary" id="recentlyDeletedBtn">🕐</button>
+                <button class="btn btn-danger" id="deleteSelectedBtn">🗑️</button>
+            </div>
+
+            <!-- Webpage List -->
+            <div class="webpage-list" id="webpageList">
+                <!-- Default folder -->
+                <div class="folder" data-folder="default">
+                    <div class="folder-header">
+                        <span>👁️</span>
+                        <span>📁 Default Folder</span>
+                        <input type="checkbox" class="webpage-checkbox folder-checkbox">
+                    </div>
+                    
+                    <!-- Sample webpages -->
+                    <div class="webpage-item" data-url="https://www.hands2ocean.com/">
+                        <input type="checkbox" class="webpage-checkbox">
+                        <span class="webpage-name">Hands2Ocean Events</span>
+                        <span class="webpage-status">🌊</span>
+                        <span class="webpage-visibility" data-visible="true">👁️</span>
+                    </div>
+                    
+                    <div class="webpage-item" data-url="https://luma.com/stockholm">
+                        <input type="checkbox" class="webpage-checkbox">
+                        <span class="webpage-name">Luma Stockholm</span>
+                        <span class="webpage-status">🎉</span>
+                        <span class="webpage-visibility" data-visible="true">👁️</span>
+                    </div>
+                    
+                    <div class="webpage-item" data-url="https://cicus.us.es/category/actividades/">
+                        <input type="checkbox" class="webpage-checkbox">
+                        <span class="webpage-name">CICUS Actividades</span>
+                        <span class="webpage-status">🏛️</span>
+                        <span class="webpage-visibility" data-visible="true">👁️</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Calendar Container -->
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <h1 class="calendar-title">Event Calendar</h1>
+                <div class="calendar-nav">
+                    <button class="btn btn-primary" id="downloadBtn">📥 Download .ics</button>
+                    <button class="btn btn-secondary" id="prevMonth">◀</button>
+                    <span id="currentMonth">September 2025</span>
+                    <button class="btn btn-secondary" id="nextMonth">▶</button>
+                </div>
+            </div>
+
+            <!-- View Toggle -->
+            <div class="view-toggle">
+                <button class="view-btn active" data-view="month">Month</button>
+                <button class="view-btn" data-view="week">Week</button>
+                <button class="view-btn" data-view="day">Day</button>
+            </div>
+
+            <!-- Calendar Grid -->
+            <div class="calendar-grid" id="calendarGrid">
+                <!-- Calendar days will be generated by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Webpage Modal -->
+    <div id="addWebpageModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Add New Webpage</h3>
+                <span class="close" id="closeAddModal">&times;</span>
+            </div>
+            
+            <div class="form-group">
+                <label for="webpageUrl">Webpage URL:</label>
+                <input type="url" id="webpageUrl" class="form-control" placeholder="https://example.com/events">
+            </div>
+            
+            <div class="form-group">
+                <label for="webpageName">Display Name:</label>
+                <input type="text" id="webpageName" class="form-control" placeholder="My Event Source">
+            </div>
+            
+            <div class="form-group">
+                <label for="folderSelect">Folder:</label>
+                <select id="folderSelect" class="form-control">
+                    <option value="default">Default Folder</option>
+                    <option value="new">Create New Folder</option>
+                </select>
+            </div>
+            
+            <div class="form-group" id="newFolderGroup" style="display: none;">
+                <label for="newFolderName">New Folder Name:</label>
+                <input type="text" id="newFolderName" class="form-control" placeholder="Folder Name">
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
+                <button class="btn btn-primary" id="checkWebpageBtn">✓ Check & Add</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Notification Settings</h3>
+                <span class="close" id="closeSettingsModal">&times;</span>
+            </div>
+            
+            <div class="settings-panel">
+                <div class="settings-group">
+                    <h4>Update Notifications</h4>
+                    <div class="checkbox-group">
+                        <input type="radio" name="updateNotifications" id="noNotifications" value="none">
+                        <label for="noNotifications">No notifications regarding updates</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="radio" name="updateNotifications" id="specificWebsites" value="specific" checked>
+                        <label for="specificWebsites">Only send me updates for specific saved websites</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="radio" name="updateNotifications" id="specificFolders" value="folders">
+                        <label for="specificFolders">Updates for specific websites and folders</label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h4>Event Notifications</h4>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="newEventsNotif" checked>
+                        <label for="newEventsNotif">Send notifications as new events are added</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="upcomingWeekNotif">
+                        <label for="upcomingWeekNotif">Send notifications for events in the upcoming week</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="upcomingMonthNotif">
+                        <label for="upcomingMonthNotif">Send notifications for events in the upcoming month</label>
+                    </div>
+                </div>
+
+                <div class="settings-group">
+                    <h4>Website Health Notifications</h4>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="inactivityNotif" checked>
+                        <label for="inactivityNotif">Notify if website has no activity for:</label>
+                        <select class="form-control" style="width: auto; margin-left: 10px;">
+                            <option value="7">1 week</option>
+                            <option value="30" selected>1 month</option>
+                            <option value="90">3 months</option>
+                            <option value="180">6 months</option>
+                            <option value="365">1 year</option>
+                        </select>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="unreachableNotif" checked>
+                        <label for="unreachableNotif">Send notifications if website is no longer reachable</label>
+                    </div>
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="unreadableNotif" checked>
+                        <label for="unreadableNotif">Send notifications if website is reachable but no longer readable</label>
+                    </div>
+                </div>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-secondary" id="cancelSettingsBtn">Cancel</button>
+                <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recently Deleted Modal -->
+    <div id="recentlyDeletedModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Recently Deleted</h3>
+                <span class="close" id="closeRecentlyDeletedModal">&times;</span>
+            </div>
+            
+            <div id="recentlyDeletedList">
+                <!-- Recently deleted items will appear here -->
+                <p style="color: #666; text-align: center; padding: 20px;">No recently deleted items.</p>
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-secondary" id="closeRecentlyDeletedBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Details Modal -->
+    <div id="eventDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="eventTitle">Event Details</h3>
+                <span class="close" id="closeEventDetailsModal">&times;</span>
+            </div>
+            
+            <div id="eventDetailsContent">
+                <!-- Event details will be populated here -->
+            </div>
+
+            <div style="text-align: right; margin-top: 20px;">
+                <button class="btn btn-secondary" id="closeEventDetailsBtn">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentDate = new Date(2025, 8, 26); // September 26, 2025
+        let currentView = 'month';
+        let webpages = [];
+        let folders = [{ name: 'Default Folder', id: 'default' }];
+        let recentlyDeleted = [];
+        let events = [];
+        let settings = {
+            updateNotifications: 'specific',
+            newEventsNotif: true,
+            upcomingWeekNotif: false,
+            upcomingMonthNotif: false,
+            inactivityNotif: true,
+            inactivityPeriod: 30,
+            unreachableNotif: true,
+            unreadableNotif: true
+        };
+
+        // Sample events data
+        const sampleEvents = [
+            {
+                id: 1,
+                title: "Ocean Cleanup Workshop",
+                date: new Date(2025, 8, 28),
+                time: "10:00",
+                location: "Marine Center, Stockholm",
+                description: "Join us for a hands-on workshop about ocean conservation and cleanup techniques.",
+                source: "https://www.hands2ocean.com/",
+                sourceName: "Hands2Ocean Events"
+            },
+            {
+                id: 2,
+                title: "Stockholm Tech Meetup",
+                date: new Date(2025, 8, 30),
+                time: "18:00",
+                location: "TechHub Stockholm",
+                description: "Monthly gathering of Stockholm's tech community. Networking and presentations.",
+                source: "https://luma.com/stockholm",
+                sourceName: "Luma Stockholm"
+            },
+            {
+                id: 3,
+                title: "Conferencia Cultural",
+                date: new Date(2025, 9, 2),
+                time: "16:00",
+                location: "Centro Cultural, Sevilla",
+                description: "Una conferencia sobre arte contemporáneo y cultura digital.",
+                source: "https://cicus.us.es/category/actividades/",
+                sourceName: "CICUS Actividades"
+            },
+            {
+                id: 4,
+                title: "Marine Biology Seminar",
+                date: new Date(2025, 9, 5),
+                time: "14:00",
+                location: "University of Stockholm",
+                description: "Latest research in marine biology and ocean conservation.",
+                source: "https://www.hands2ocean.com/",
+                sourceName: "Hands2Ocean Events"
+            }
+        ];
+
+        events = [...sampleEvents];
+
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCalendar();
+            initializeEventListeners();
+            loadWebpages();
+            loadSettings();
+        });
+
+        function initializeCalendar() {
+            updateCalendarDisplay();
+            updateCurrentMonthDisplay();
+        }
+
+        function updateCalendarDisplay() {
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '';
+
+            if (currentView === 'month') {
+                generateMonthView();
+            } else if (currentView === 'week') {
+                generateWeekView();
+            } else {
+                generateDayView();
+            }
+        }
+
+        function generateMonthView() {
+            const calendarGrid = document.getElementById('calendarGrid');
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // Get first day of month and number of days
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDayOfWeek = firstDay.getDay();
+
+            // Day headers
+            const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            dayHeaders.forEach(day => {
+                const headerDiv = document.createElement('div');
+                headerDiv.className = 'calendar-day';
+                headerDiv.innerHTML = `<div class="calendar-day-header">${day}</div>`;
+                headerDiv.style.background = '#f8f9fa';
+                headerDiv.style.minHeight = '40px';
+                calendarGrid.appendChild(headerDiv);
+            });
+
+            // Empty cells for days before month starts
+            for (let i = 0; i < startingDayOfWeek; i++) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'calendar-day';
+                emptyDiv.style.background = '#f0f0f0';
+                calendarGrid.appendChild(emptyDiv);
+            }
+
+            // Days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'calendar-day';
+                
+                const dayNumber = document.createElement('div');
+                dayNumber.className = 'calendar-day-number';
+                dayNumber.textContent = day;
+                
+                const currentDayDate = new Date(year, month, day);
+                const dayEvents = events.filter(event => 
+                    event.date.toDateString() === currentDayDate.toDateString()
+                );
+
+                dayDiv.appendChild(dayNumber);
+                
+                dayEvents.forEach(event => {
+                    const eventDiv = document.createElement('div');
+                    eventDiv.className = 'event-item';
+                    eventDiv.textContent = event.title;
+                    eventDiv.addEventListener('click', () => showEventDetails(event));
+                    dayDiv.appendChild(eventDiv);
+                });
+
+                calendarGrid.appendChild(dayDiv);
+            }
+        }
+
+        function generateWeekView() {
+            // Implementation for week view
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Week view coming soon...</div>';
+        }
+
+        function generateDayView() {
+            // Implementation for day view
+            const calendarGrid = document.getElementById('calendarGrid');
+            calendarGrid.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Day view coming soon...</div>';
+        }
+
+        function updateCurrentMonthDisplay() {
+            const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                'July', 'August', 'September', 'October', 'November', 'December'];
+            document.getElementById('currentMonth').textContent = 
+                `${monthNames[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+        }
+
+        function showEventDetails(event) {
+            const modal = document.getElementById('eventDetailsModal');
+            const title = document.getElementById('eventTitle');
+            const content = document.getElementById('eventDetailsContent');
+
+            title.textContent = event.title;
+            content.innerHTML = `
+                <div style="margin-bottom: 15px;">
+                    <strong>Date:</strong> ${event.date.toLocaleDateString()}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Time:</strong> ${event.time}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Location:</strong> ${event.location}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Source:</strong> ${event.sourceName}
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <strong>Description:</strong><br>
+                    ${event.description}
+                </div>
+            `;
+
+            modal.style.display = 'block';
+        }
+
+        function initializeEventListeners() {
+            // Modal controls
+            document.getElementById('addWebpageBtn').addEventListener('click', () => {
+                document.getElementById('addWebpageModal').style.display = 'block';
+            });
+
+            document.getElementById('settingsBtn').addEventListener('click', () => {
+                document.getElementById('settingsModal').style.display = 'block';
+            });
+
+            document.getElementById('recentlyDeletedBtn').addEventListener('click', () => {
+                updateRecentlyDeletedList();
+                document.getElementById('recentlyDeletedModal').style.display = 'block';
+            });
+
+            // Close modals
+            document.querySelectorAll('.close').forEach(closeBtn => {
+                closeBtn.addEventListener('click', (e) => {
+                    e.target.closest('.modal').style.display = 'none';
+                });
+            });
+
+            // Calendar navigation
+            document.getElementById('prevMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                updateCalendarDisplay();
+                updateCurrentMonthDisplay();
+            });
+
+            document.getElementById('nextMonth').addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                updateCalendarDisplay();
+                updateCurrentMonthDisplay();
+            });
+
+            // View toggle
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    currentView = e.target.dataset.view;
+                    updateCalendarDisplay();
+                });
+            });
+
+            // Download .ics file
+            document.getElementById('downloadBtn').addEventListener('click', downloadICS);
+
+            // Add webpage form
+            document.getElementById('checkWebpageBtn').addEventListener('click', checkAndAddWebpage);
+            
+            document.getElementById('folderSelect').addEventListener('change', (e) => {
+                const newFolderGroup = document.getElementById('newFolderGroup');
+                newFolderGroup.style.display = e.target.value === 'new' ? 'block' : 'none';
+            });
+
+            // Settings form
+            document.getElementById('saveSettingsBtn').addEventListener('click', saveSettings);
+
+            // Delete selected webpages
+            document.getElementById('deleteSelectedBtn').addEventListener('click', deleteSelectedWebpages);
+
+                                // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey && e.key === 'z') {
+                    undoLastAction();
+                }
+            });
+
+            // Start background processes
+            startBackgroundProcesses();
+        }
+
+        function checkAndAddWebpage() {
+            const url = document.getElementById('webpageUrl').value.trim();
+            const name = document.getElementById('webpageName').value.trim();
+            
+            if (!url) {
+                showNotification('Please enter a URL', 'error');
+                return;
+            }
+
+            showNotification('Checking webpage...', 'info');
+            
+            // Test the webpage for event parsing capabilities
+            testWebpageForEvents(url).then(result => {
+                if (result.canParse) {
+                    const webpage = {
+                        id: Date.now(),
+                        url: url,
+                        name: name || result.suggestedName || 'Unnamed Source',
+                        emoji: result.suggestedEmoji || '📅',
+                        folder: document.getElementById('folderSelect').value,
+                        visible: true,
+                        lastScraped: null,
+                        status: 'active',
+                        eventCount: 0
+                    };
+                    
+                    webpages.push(webpage);
+                    updateWebpageList();
+                    document.getElementById('addWebpageModal').style.display = 'none';
+                    
+                    // Clear form
+                    document.getElementById('webpageUrl').value = '';
+                    document.getElementById('webpageName').value = '';
+                    
+                    showNotification('Webpage added successfully!', 'success');
+                    
+                    // Start scraping immediately
+                    scrapeWebpageEvents(webpage);
+                } else {
+                    showNotification(`Cannot parse events from this webpage: ${result.error}`, 'error');
+                }
+            }).catch(error => {
+                showNotification('Error checking webpage: ' + error.message, 'error');
+            });
+        }
+
+        async function testWebpageForEvents(url) {
+            try {
+                // Since we can't make direct HTTP requests from browser due to CORS,
+                // we'll simulate the testing process and provide event parsing capabilities
+                // In a real implementation, this would be done by a backend service
+                
+                const domain = new URL(url).hostname;
+                
+                // Known supported sites
+                const knownSites = {
+                    'www.hands2ocean.com': {
+                        canParse: true,
+                        suggestedName: 'Hands2Ocean Events',
+                        suggestedEmoji: '🌊',
+                        selector: '.event-item, .upcoming-event',
+                        titleSelector: '.event-title, h3, h2',
+                        dateSelector: '.event-date, .date',
+                        locationSelector: '.event-location, .location',
+                        descriptionSelector: '.event-description, .description',
+                        detailLinkSelector: 'a[href*="event"]'
+                    },
+                    'luma.com': {
+                        canParse: true,
+                        suggestedName: 'Luma Events',
+                        suggestedEmoji: '🎉',
+                        selector: '.event-card, .event-item',
+                        titleSelector: '.event-title, h3',
+                        dateSelector: '.event-date, .date-time',
+                        locationSelector: '.event-venue, .venue',
+                        descriptionSelector: '.event-description',
+                        detailLinkSelector: '.event-link, a'
+                    },
+                    'cicus.us.es': {
+                        canParse: true,
+                        suggestedName: 'CICUS Actividades',
+                        suggestedEmoji: '🏛️',
+                        selector: '.activity, .evento, .event',
+                        titleSelector: '.title, .titulo, h3',
+                        dateSelector: '.fecha, .date',
+                        locationSelector: '.lugar, .location',
+                        descriptionSelector: '.descripcion, .description',
+                        detailLinkSelector: 'a'
+                    }
+                };
+
+                if (knownSites[domain]) {
+                    return knownSites[domain];
+                }
+
+                // For unknown sites, try to detect common event patterns
+                return {
+                    canParse: true, // We'll attempt to parse any site
+                    suggestedName: domain.replace('www.', ''),
+                    suggestedEmoji: '📅',
+                    selector: '.event, .activity, .programa, [class*="event"], [class*="activity"]',
+                    titleSelector: 'h1, h2, h3, .title, .titulo, .name',
+                    dateSelector: '.date, .fecha, .when, [class*="date"], [class*="time"]',
+                    locationSelector: '.location, .lugar, .where, .venue, [class*="location"]',
+                    descriptionSelector: '.description, .descripcion, .content, p',
+                    detailLinkSelector: 'a'
+                };
+            } catch (error) {
+                return {
+                    canParse: false,
+                    error: error.message
+                };
+            }
+        }
+
+        async function scrapeWebpageEvents(webpage) {
+            try {
+                showNotification(`Scraping events from ${webpage.name}...`, 'info');
+                
+                // Simulate the scraping process
+                // In a real implementation, this would be done by a backend service
+                const scrapedEvents = await simulateEventScraping(webpage);
+                
+                // Process and add new events
+                let newEventsCount = 0;
+                scrapedEvents.forEach(eventData => {
+                    // Check if event already exists
+                    const existingEvent = events.find(e => 
+                        e.title === eventData.title && 
+                        e.date.toDateString() === eventData.date.toDateString()
+                    );
+                    
+                    if (!existingEvent) {
+                        const event = {
+                            id: Date.now() + Math.random(),
+                            title: eventData.title,
+                            date: eventData.date,
+                            time: eventData.time,
+                            location: eventData.location,
+                            description: eventData.description,
+                            source: webpage.url,
+                            sourceName: webpage.name,
+                            sourceEmoji: webpage.emoji
+                        };
+                        
+                        events.push(event);
+                        newEventsCount++;
+                    }
+                });
+
+                // Update webpage status
+                webpage.lastScraped = new Date();
+                webpage.eventCount = scrapedEvents.length;
+                webpage.status = 'active';
+                
+                updateWebpageList();
+                updateCalendarDisplay();
+                
+                if (newEventsCount > 0) {
+                    showNotification(`Found ${newEventsCount} new events from ${webpage.name}`, 'success');
+                    
+                    if (settings.newEventsNotif) {
+                        sendNotificationEmail(`New events found: ${newEventsCount} events from ${webpage.name}`);
+                    }
+                } else {
+                    showNotification(`No new events found from ${webpage.name}`, 'info');
+                }
+                
+            } catch (error) {
+                webpage.status = 'error';
+                webpage.lastScraped = new Date();
+                updateWebpageList();
+                showNotification(`Error scraping ${webpage.name}: ${error.message}`, 'error');
+            }
+        }
+
+        async function simulateEventScraping(webpage) {
+            // This simulates the actual web scraping that would happen in a real backend
+            // In production, this would involve:
+            // 1. Fetching the webpage HTML
+            // 2. Parsing it with selectors based on the site configuration
+            // 3. Extracting event information
+            // 4. Translating content if needed
+            // 5. Parsing dates and times
+            
+            await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate network delay
+
+            const sampleEventsByDomain = {
+                'www.hands2ocean.com': [
+                    {
+                        title: 'Ocean Cleanup Workshop',
+                        date: new Date(2025, 9, 15),
+                        time: '10:00',
+                        location: 'Marine Center, Stockholm',
+                        description: 'Join us for a hands-on workshop about ocean conservation and cleanup techniques. Learn about marine pollution and how you can make a difference.'
+                    },
+                    {
+                        title: 'Marine Biology Research Presentation',
+                        date: new Date(2025, 9, 22),
+                        time: '14:00',
+                        location: 'University of Stockholm, Building A',
+                        description: 'Latest research findings in marine biology and ocean conservation efforts in the Baltic Sea.'
+                    }
+                ],
+                'luma.com': [
+                    {
+                        title: 'Stockholm Tech Meetup - AI & Future',
+                        date: new Date(2025, 9, 18),
+                        time: '18:00',
+                        location: 'TechHub Stockholm, Regeringsgatan 65',
+                        description: 'Monthly gathering of Stockholm\'s tech community. This month focusing on AI developments and future technologies. Networking and presentations included.'
+                    },
+                    {
+                        title: 'Startup Pitch Night',
+                        date: new Date(2025, 9, 25),
+                        time: '19:00',
+                        location: 'SUP46, Regeringsgatan 65',
+                        description: 'Local startups present their ideas to investors and the community. Great networking opportunity for entrepreneurs and investors.'
+                    }
+                ],
+                'cicus.us.es': [
+                    {
+                        title: 'Conferencia: Arte Digital Contemporáneo',
+                        date: new Date(2025, 9, 20),
+                        time: '16:00',
+                        location: 'Centro Cultural CICUS, Sevilla',
+                        description: 'Una conferencia sobre las últimas tendencias en arte digital y cultura contemporánea. Presentación de artistas locales e internacionales.'
+                    },
+                    {
+                        title: 'Taller de Fotografía Urbana',
+                        date: new Date(2025, 9, 27),
+                        time: '10:30',
+                        location: 'Plaza de España, Sevilla',
+                        description: 'Taller práctico de fotografía urbana explorando los espacios arquitectónicos más emblemáticos de Sevilla.'
+                    }
+                ]
+            };
+
+            const domain = new URL(webpage.url).hostname;
+            return sampleEventsByDomain[domain] || [
+                {
+                    title: 'Sample Event',
+                    date: new Date(2025, 9, 30),
+                    time: '12:00',
+                    location: 'Sample Location',
+                    description: 'This is a sample event extracted from the webpage.'
+                }
+            ];
+        }
+
+        function translateText(text, targetLanguage = 'en') {
+            // Simulate translation functionality
+            // In a real implementation, this would use a translation API like Google Translate
+            
+            const translations = {
+                // Spanish to English
+                'Conferencia': 'Conference',
+                'Taller': 'Workshop',
+                'Arte Digital': 'Digital Art',
+                'Contemporáneo': 'Contemporary',
+                'lugar': 'location',
+                'fecha': 'date',
+                'descripción': 'description',
+                'actividades': 'activities',
+                'eventos': 'events',
+                'próximos': 'upcoming',
+                'inscripción': 'registration',
+                
+                // Swedish to English
+                'kommande': 'upcoming',
+                'evenemang': 'events',
+                'datum': 'date',
+                'plats': 'location',
+                'beskrivning': 'description',
+                'anmälan': 'registration'
+            };
+
+            let translatedText = text;
+            for (const [original, translation] of Object.entries(translations)) {
+                const regex = new RegExp(original, 'gi');
+                translatedText = translatedText.replace(regex, translation);
+            }
+
+            return translatedText;
+        }
+
+        function startBackgroundProcesses() {
+            // Daily sweep of all websites
+            setInterval(() => {
+                if (webpages.length > 0) {
+                    console.log('Running daily sweep of websites...');
+                    webpages.forEach(webpage => {
+                        if (webpage.visible) {
+                            scrapeWebpageEvents(webpage);
+                        }
+                    });
+                }
+            }, 24 * 60 * 60 * 1000); // 24 hours
+
+            // Check for website health every hour
+            setInterval(() => {
+                checkWebsiteHealth();
+            }, 60 * 60 * 1000); // 1 hour
+
+            // Send weekly/monthly notifications
+            setInterval(() => {
+                sendScheduledNotifications();
+            }, 24 * 60 * 60 * 1000); // Daily check for scheduled notifications
+        }
+
+        function checkWebsiteHealth() {
+            webpages.forEach(webpage => {
+                // Simulate health check
+                // In real implementation, this would ping the websites
+                
+                const now = new Date();
+                const daysSinceLastScrape = webpage.lastScraped ? 
+                    Math.floor((now - webpage.lastScraped) / (1000 * 60 * 60 * 24)) : 999;
+
+                // Check for inactivity
+                if (settings.inactivityNotif && daysSinceLastScrape > settings.inactivityPeriod) {
+                    webpage.status = 'inactive';
+                    webpage.emoji = '⚠️';
+                    
+                    if (settings.inactivityNotif) {
+                        sendNotificationEmail(`Website ${webpage.name} has been inactive for ${daysSinceLastScrape} days`);
+                    }
+                }
+
+                // Simulate random health issues (for demo purposes)
+                if (Math.random() < 0.05) { // 5% chance
+                    if (Math.random() < 0.5) {
+                        webpage.status = 'unreachable';
+                        webpage.emoji = '🔴';
+                        if (settings.unreachableNotif) {
+                            sendNotificationEmail(`Website ${webpage.name} is no longer reachable`);
+                        }
+                    } else {
+                        webpage.status = 'unreadable';
+                        webpage.emoji = '🟡';
+                        if (settings.unreadableNotif) {
+                            sendNotificationEmail(`Website ${webpage.name} is reachable but cannot be read`);
+                        }
+                    }
+                }
+            });
+
+            updateWebpageList();
+        }
+
+        function sendScheduledNotifications() {
+            const now = new Date();
+            const weekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+            const monthFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+
+            if (settings.upcomingWeekNotif) {
+                const upcomingWeekEvents = events.filter(event => 
+                    event.date >= now && event.date <= weekFromNow
+                );
+                
+                if (upcomingWeekEvents.length > 0) {
+                    sendNotificationEmail(`You have ${upcomingWeekEvents.length} events coming up this week`);
+                }
+            }
+
+            if (settings.upcomingMonthNotif) {
+                const upcomingMonthEvents = events.filter(event => 
+                    event.date >= now && event.date <= monthFromNow
+                );
+                
+                if (upcomingMonthEvents.length > 0) {
+                    sendNotificationEmail(`You have ${upcomingMonthEvents.length} events coming up this month`);
+                }
+            }
+        }
+
+        function sendNotificationEmail(message) {
+            // Simulate sending email notification
+            // In real implementation, this would use an email service
+            console.log(`📧 Email notification: ${message}`);
+            showNotification(`Email sent: ${message}`, 'info');
+        }
+
+        function loadWebpages() {
+            // Initialize with sample webpages
+            webpages = [
+                {
+                    id: 1,
+                    url: 'https://www.hands2ocean.com/',
+                    name: 'Hands2Ocean Events',
+                    emoji: '🌊',
+                    folder: 'default',
+                    visible: true,
+                    lastScraped: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+                    status: 'active',
+                    eventCount: 4
+                },
+                {
+                    id: 2,
+                    url: 'https://luma.com/stockholm',
+                    name: 'Luma Stockholm',
+                    emoji: '🎉',
+                    folder: 'default',
+                    visible: true,
+                    lastScraped: new Date(Date.now() - 1 * 60 * 60 * 1000), // 1 hour ago
+                    status: 'active',
+                    eventCount: 8
+                },
+                {
+                    id: 3,
+                    url: 'https://cicus.us.es/category/actividades/',
+                    name: 'CICUS Actividades',
+                    emoji: '🏛️',
+                    folder: 'default',
+                    visible: true,
+                    lastScraped: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+                    status: 'active',
+                    eventCount: 6
+                }
+            ];
+            
+            updateWebpageList();
+        }
+
+        function updateWebpageList() {
+            const webpageList = document.getElementById('webpageList');
+            webpageList.innerHTML = '';
+
+            folders.forEach(folder => {
+                const folderWebpages = webpages.filter(w => w.folder === folder.id);
+                
+                if (folderWebpages.length > 0) {
+                    const folderDiv = document.createElement('div');
+                    folderDiv.className = 'folder';
+                    folderDiv.dataset.folder = folder.id;
+
+                    const folderHeader = document.createElement('div');
+                    folderHeader.className = 'folder-header';
+                    folderHeader.innerHTML = `
+                        <span>${folder.visible !== false ? '👁️' : '🙈'}</span>
+                        <span>📁 ${folder.name}</span>
+                        <input type="checkbox" class="webpage-checkbox folder-checkbox">
+                    `;
+                    
+                    folderHeader.addEventListener('click', (e) => {
+                        if (e.target.type !== 'checkbox') {
+                            toggleFolderVisibility(folder.id);
+                        }
+                    });
+
+                    folderDiv.appendChild(folderHeader);
+
+                    folderWebpages.forEach(webpage => {
+                        const webpageDiv = document.createElement('div');
+                        webpageDiv.className = 'webpage-item';
+                        webpageDiv.dataset.url = webpage.url;
+                        webpageDiv.draggable = true;
+
+                        const statusEmoji = getWebpageStatusEmoji(webpage);
+                        const lastScrapedText = webpage.lastScraped ? 
+                            `Last scraped: ${webpage.lastScraped.toLocaleTimeString()}` : 
+                            'Never scraped';
+
+                        webpageDiv.innerHTML = `
+                            <input type="checkbox" class="webpage-checkbox">
+                            <span class="webpage-name" title="${lastScrapedText}">${webpage.name}</span>
+                            <span class="webpage-status" title="Status: ${webpage.status}">${statusEmoji}</span>
+                            <span class="webpage-visibility" data-visible="${webpage.visible}" title="Toggle visibility">${webpage.visible ? '👁️' : '🙈'}</span>
+                        `;
+
+                        const visibilityBtn = webpageDiv.querySelector('.webpage-visibility');
+                        visibilityBtn.addEventListener('click', () => {
+                            toggleWebpageVisibility(webpage.id);
+                        });
+
+                        // Add drag and drop functionality
+                        webpageDiv.addEventListener('dragstart', (e) => {
+                            e.dataTransfer.setData('text/plain', webpage.id);
+                            webpageDiv.classList.add('dragging');
+                        });
+
+                        webpageDiv.addEventListener('dragend', () => {
+                            webpageDiv.classList.remove('dragging');
+                        });
+
+                        folderDiv.appendChild(webpageDiv);
+                    });
+
+                    // Make folder droppable
+                    folderDiv.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        folderDiv.classList.add('drop-zone');
+                    });
+
+                    folderDiv.addEventListener('dragleave', () => {
+                        folderDiv.classList.remove('drop-zone');
+                    });
+
+                    folderDiv.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        const webpageId = parseInt(e.dataTransfer.getData('text/plain'));
+                        moveWebpageToFolder(webpageId, folder.id);
+                        folderDiv.classList.remove('drop-zone');
+                    });
+
+                    webpageList.appendChild(folderDiv);
+                }
+            });
+        }
+
+        function getWebpageStatusEmoji(webpage) {
+            switch(webpage.status) {
+                case 'active': return webpage.emoji;
+                case 'inactive': return '⚠️';
+                case 'unreachable': return '🔴';
+                case 'unreadable': return '🟡';
+                case 'error': return '❌';
+                default: return '❓';
+            }
+        }
+
+        function toggleWebpageVisibility(webpageId) {
+            const webpage = webpages.find(w => w.id === webpageId);
+            if (webpage) {
+                webpage.visible = !webpage.visible;
+                updateWebpageList();
+                updateCalendarDisplay();
+            }
+        }
+
+        function toggleFolderVisibility(folderId) {
+            const folder = folders.find(f => f.id === folderId);
+            if (folder) {
+                folder.visible = folder.visible !== false ? false : true;
+                const folderWebpages = webpages.filter(w => w.folder === folderId);
+                folderWebpages.forEach(w => w.visible = folder.visible);
+                updateWebpageList();
+                updateCalendarDisplay();
+            }
+        }
+
+        function moveWebpageToFolder(webpageId, folderId) {
+            const webpage = webpages.find(w => w.id === webpageId);
+            if (webpage && webpage.folder !== folderId) {
+                const oldFolder = webpage.folder;
+                webpage.folder = folderId;
+                updateWebpageList();
+                
+                // Save action for undo
+                saveUndoAction('move', { webpageId, oldFolder, newFolder: folderId });
+                showNotification(`Moved ${webpage.name} to ${folders.find(f => f.id === folderId)?.name}`, 'success');
+            }
+        }
+
+        function deleteSelectedWebpages() {
+            const selectedCheckboxes = document.querySelectorAll('.webpage-item .webpage-checkbox:checked');
+            if (selectedCheckboxes.length === 0) {
+                showNotification('No webpages selected for deletion', 'warning');
+                return;
+            }
+
+            const deletedWebpages = [];
+            selectedCheckboxes.forEach(checkbox => {
+                const webpageItem = checkbox.closest('.webpage-item');
+                const url = webpageItem.dataset.url;
+                const webpage = webpages.find(w => w.url === url);
+                
+                if (webpage) {
+                    deletedWebpages.push({...webpage});
+                    webpages = webpages.filter(w => w.id !== webpage.id);
+                }
+            });
+
+            if (deletedWebpages.length > 0) {
+                recentlyDeleted.push(...deletedWebpages.map(w => ({
+                    ...w,
+                    deletedAt: new Date()
+                })));
+                
+                updateWebpageList();
+                showNotification(`Deleted ${deletedWebpages.length} webpage(s)`, 'success');
+                
+                // Save action for undo
+                saveUndoAction('delete', { webpages: deletedWebpages });
+            }
+        }
+
+        let undoStack = [];
+
+        function saveUndoAction(type, data) {
+            undoStack.push({ type, data, timestamp: new Date() });
+            if (undoStack.length > 10) {
+                undoStack.shift(); // Keep only last 10 actions
+            }
+        }
+
+        function undoLastAction() {
+            if (undoStack.length === 0) {
+                showNotification('Nothing to undo', 'info');
+                return;
+            }
+
+            const lastAction = undoStack.pop();
+            
+            switch(lastAction.type) {
+                case 'move':
+                    const webpage = webpages.find(w => w.id === lastAction.data.webpageId);
+                    if (webpage) {
+                        webpage.folder = lastAction.data.oldFolder;
+                        updateWebpageList();
+                        showNotification('Move action undone', 'success');
+                    }
+                    break;
+                    
+                case 'delete':
+                    lastAction.data.webpages.forEach(deletedWebpage => {
+                        webpages.push(deletedWebpage);
+                        recentlyDeleted = recentlyDeleted.filter(w => w.id !== deletedWebpage.id);
+                    });
+                    updateWebpageList();
+                    showNotification(`Restored ${lastAction.data.webpages.length} webpage(s)`, 'success');
+                    break;
+            }
+        }
+
+        function updateRecentlyDeletedList() {
+            const list = document.getElementById('recentlyDeletedList');
+            
+            if (recentlyDeleted.length === 0) {
+                list.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No recently deleted items.</p>';
+                return;
+            }
+
+            list.innerHTML = recentlyDeleted.map(webpage => `
+                <div class="webpage-item" style="border-bottom: 1px solid #eee;">
+                    <span class="webpage-name">${webpage.name}</span>
+                    <span style="color: #666; font-size: 12px;">Deleted: ${webpage.deletedAt.toLocaleString()}</span>
+                    <button class="btn btn-primary" onclick="restoreWebpage(${webpage.id})">Restore</button>
+                </div>
+            `).join('');
+        }
+
+        function restoreWebpage(webpageId) {
+            const webpage = recentlyDeleted.find(w => w.id === webpageId);
+            if (webpage) {
+                const restoredWebpage = {...webpage};
+                delete restoredWebpage.deletedAt;
+                
+                webpages.push(restoredWebpage);
+                recentlyDeleted = recentlyDeleted.filter(w => w.id !== webpageId);
+                
+                updateWebpageList();
+                updateRecentlyDeletedList();
+                showNotification(`Restored ${webpage.name}`, 'success');
+            }
+        }
+
+        function downloadICS() {
+            // Generate ICS file content
+            let icsContent = [
+                'BEGIN:VCALENDAR',
+                'VERSION:2.0',
+                'PRODID:-//Event Calendar Aggregator//EN',
+                'CALSCALE:GREGORIAN',
+                'METHOD:PUBLISH'
+            ];
+
+            events.forEach(event => {
+                const startDate = new Date(event.date);
+                if (event.time) {
+                    const [hours, minutes] = event.time.split(':');
+                    startDate.setHours(parseInt(hours), parseInt(minutes));
+                }
+                
+                const endDate = new Date(startDate.getTime() + 60 * 60 * 1000); // 1 hour duration
+                
+                const formatDate = (date) => {
+                    return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+                };
+
+                icsContent.push(
+                    'BEGIN:VEVENT',
+                    `UID:${event.id}@event-calendar-aggregator.com`,
+                    `DTSTART:${formatDate(startDate)}`,
+                    `DTEND:${formatDate(endDate)}`,
+                    `SUMMARY:${event.title}`,
+                    `DESCRIPTION:${event.description}\\n\\nSource: ${event.sourceName} (${event.source})`,
+                    `LOCATION:${event.location}`,
+                    `URL:${event.source}`,
+                    'END:VEVENT'
+                );
+            });
+
+            icsContent.push('END:VCALENDAR');
+
+            // Create and download file
+            const blob = new Blob([icsContent.join('\n')], { type: 'text/calendar' });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `events-${new Date().toISOString().split('T')[0]}.ics`;
+            link.click();
+            
+            URL.revokeObjectURL(url);
+            showNotification('Calendar file downloaded successfully!', 'success');
+        }
+
+        function loadSettings() {
+            // Load settings from storage (simulated)
+            // In real implementation, this would load from localStorage or backend
+        }
+
+        function saveSettings() {
+            // Save current settings
+            settings.updateNotifications = document.querySelector('input[name="updateNotifications"]:checked').value;
+            settings.newEventsNotif = document.getElementById('newEventsNotif').checked;
+            settings.upcomingWeekNotif = document.getElementById('upcomingWeekNotif').checked;
+            settings.upcomingMonthNotif = document.getElementById('upcomingMonthNotif').checked;
+            settings.inactivityNotif = document.getElementById('inactivityNotif').checked;
+            settings.unreachableNotif = document.getElementById('unreachableNotif').checked;
+            settings.unreadableNotif = document.getElementById('unreadableNotif').checked;
+
+            document.getElementById('settingsModal').style.display = 'none';
+            showNotification('Settings saved successfully!', 'success');
+        }
+
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 4000);
+        }
+
+        // Make functions available globally for onclick handlers
+        window.restoreWebpage = restoreWebpage;
+                    
