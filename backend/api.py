@@ -2,25 +2,22 @@
 
 import logging
 from datetime import datetime
-from typing import Any
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from cache import InMemoryContentCache
-from database import SessionLocal
-from database import get_db, init_db
-from models import Event, ExtractionLog, Folder, Website, WebsiteStatus
-from pipeline import run_pipeline
-from website_manager import add_website as wm_add_website, delete_website as wm_delete_website, test_connectivity
+from .cache import InMemoryContentCache
+from .database import SessionLocal, get_db, init_db
+from .models import Event, ExtractionLog, Folder, Website, WebsiteStatus
+from .pipeline import run_pipeline
+from .website_manager import add_website as wm_add_website, delete_website as wm_delete_website, test_connectivity
 
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Calendar Aggregator API", version="1.0.0")
 
-# In-memory cache for content change detection (use DB-backed cache in production)
 content_cache = InMemoryContentCache()
 
 
@@ -34,9 +31,6 @@ def get_db_session():
         raise
     finally:
         db.close()
-
-
-# --- Pydantic schemas ---
 
 
 class WebsiteCreate(BaseModel):
@@ -82,12 +76,6 @@ class FolderCreate(BaseModel):
     user_id: int | None = None
 
 
-# --- DB dependency for FastAPI ---
-
-
-# --- Endpoints ---
-
-
 @app.on_event("startup")
 def startup():
     init_db()
@@ -112,7 +100,6 @@ def create_website(data: WebsiteCreate, db: Session = Depends(get_db_session)):
     )
     if err:
         raise HTTPException(status_code=400, detail=err)
-    # Re-fetch from DB for response
     website = db.query(Website).filter(Website.url == data.url).first()
     return {
         "id": website.id,
@@ -254,7 +241,7 @@ def trigger_extraction(website_id: int, db: Session = Depends(get_db_session)):
 
     result = run_pipeline(
         website.url,
-        content_cache=content_cache,
+        content_cache=None,
         get_existing_events=get_existing,
         save_events=save_events,
     )

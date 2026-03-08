@@ -3,7 +3,7 @@
 import logging
 from urllib.parse import urlparse
 
-from scraper import fetch, ScraperError
+from .scraper import ScraperError, fetch
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def add_website(
     if session is None:
         return {"url": url, "name": name or url, "folder_id": folder_id, "user_id": user_id}, None
 
-    from models import Website, WebsiteStatus
+    from .models import Website, WebsiteStatus
 
     existing = session.query(Website).filter(Website.url == url).first()
     if existing:
@@ -102,7 +102,7 @@ def delete_website(website_id: int, session=None) -> tuple[bool, str | None]:
     if session is None:
         return False, "Database not configured"
 
-    from models import Website
+    from .models import Website
 
     website = session.query(Website).filter(Website.id == website_id).first()
     if not website:

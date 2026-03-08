@@ -10,8 +10,8 @@ os.environ["DATABASE_URL"] = "sqlite:///./test_calendar_aggregator.db"
 import pytest
 from fastapi.testclient import TestClient
 
-from api import app
-from database import init_db
+from backend.api import app
+from backend.database import init_db
 
 # Create tables on the same engine the app uses (TestClient doesn't run startup before first request)
 init_db()

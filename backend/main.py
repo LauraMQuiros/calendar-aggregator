@@ -3,11 +3,11 @@
 import logging
 import uvicorn
 
-from api import app, content_cache
-from database import get_db, init_db
-from models import Event, Website
-from pipeline import run_pipeline
-from scheduler import create_scheduler
+from .api import app, content_cache
+from .database import get_db, init_db
+from .models import Event, Website
+from .pipeline import run_pipeline
+from .scheduler import create_scheduler
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -22,7 +22,7 @@ def get_websites_for_scheduler():
 def run_extraction_job(website_id: int, url: str):
     from datetime import datetime
 
-    from models import ExtractionLog
+    from .models import ExtractionLog
 
     def get_existing():
         with get_db() as sess:

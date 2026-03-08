@@ -18,7 +18,7 @@ from openai import OpenAI
 logger = logging.getLogger(__name__)
 
 # Local model config (checked first)
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL")  # e.g. "llama3.2" - run: ollama pull llama3.2
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2")  # default llama3.2 - run: ollama pull llama3.2
 OLLAMA_TIMEOUT = float(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "120"))  # fail after N seconds instead of hanging
 USE_TRANSFORMERS = os.environ.get("USE_TRANSFORMERS", "").lower() in ("1", "true", "yes")
 TRANSFORMERS_MODEL = os.environ.get("TRANSFORMERS_MODEL", "Qwen/Qwen2-1.5B-Instruct")

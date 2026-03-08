@@ -7,9 +7,9 @@ from unittest.mock import patch
 
 import pytest
 
-from scraper import fetch, ScraperError
-from cleaner import clean
-from pipeline import run_pipeline
+from backend.scraper import fetch, ScraperError
+from backend.cleaner import clean
+from backend.pipeline import run_pipeline
 
 HANDS2OCEAN_URL = "https://www.hands2ocean.com/"
 TOTAL_STEPS = 5
@@ -119,7 +119,7 @@ class TestFullPipeline:
 
         print("  ⏱  Running pipeline (fetch → clean → extract → dedup) ...", flush=True)
         t0 = time.perf_counter()
-        with patch("pipeline.fetch", side_effect=mock_fetch):
+        with patch("backend.pipeline.fetch", side_effect=mock_fetch):
             result = run_pipeline(
                 HANDS2OCEAN_URL,
                 content_cache=None,
